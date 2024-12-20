@@ -25,6 +25,9 @@ public class ProductDto
     [JsonProperty("brand")]
     public string? Brand { get; set; }
 
+    [JsonProperty("quantityInStock")]
+    public decimal QuantityInStock { get; set; }
+
     [JsonProperty("isActive")]
     public required bool IsActive { get; set; }
 }

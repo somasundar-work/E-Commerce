@@ -26,4 +26,7 @@ public class Product : BaseEntity
 
     [JsonProperty("brand")]
     public string? Brand { get; set; }
+
+    [JsonProperty("quantityInStock")]
+    public decimal QuantityInStock { get; set; }
 }

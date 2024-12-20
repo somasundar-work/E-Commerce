@@ -16,21 +16,37 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> ListAsync()
+    public async Task<IActionResult> ListAsync(
+        [FromQuery] string? brand,
+        [FromQuery] string? type,
+        [FromQuery] string? sort
+    )
     {
-        return Ok(await productsRepository.GetProducts());
+        return Ok(await productsRepository.GetProductsAsync(brand, type, sort));
+    }
+
+    [HttpGet("Brands")]
+    public async Task<IActionResult> ListBrandsAsync()
+    {
+        return Ok(await productsRepository.GetBrandsAsync());
+    }
+
+    [HttpGet("Types")]
+    public async Task<IActionResult> ListTypesAsync()
+    {
+        return Ok(await productsRepository.GetTypeAsync());
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetAsync(int id)
     {
-        return Ok(await productsRepository.ProductDetail(id));
+        return Ok(await productsRepository.GetProductByIdAsync(id));
     }
 
     [HttpPost]
     public async Task<IActionResult> PostAsync([FromBody] ProductDto input)
     {
-        return Ok(await productsRepository.CreateProduct(input));
+        return Ok(await productsRepository.AddProduct(input));
     }
 
     [HttpPut("{id:int}")]

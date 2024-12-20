@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Application.Mapper;
 using Application.ProductsRepository;
 using Data.Context;
+using Data.Seed;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -73,5 +74,19 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+try
+{
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<StoreContext>();
+    await context.Database.MigrateAsync();
+    await StoreContextSeed.SeedAsync(context);
+}
+catch (System.Exception ex)
+{
+    Console.WriteLine(ex);
+    throw;
+}
 
 app.Run();

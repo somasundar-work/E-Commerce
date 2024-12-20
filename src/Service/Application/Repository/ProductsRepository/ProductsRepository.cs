@@ -19,12 +19,12 @@ public class ProductsRepository : IProductsRepository
         this.mapper = mapper;
     }
 
-    public async Task<Result<string>> CreateProduct(ProductDto request)
+    public async Task<Result<string>> AddProduct(ProductDto request)
     {
         Result<string> result = new();
         var product = mapper.Map<Product>(request);
         await storeContext.AddAsync(product);
-        bool isSuccess = await storeContext.SaveChangesAsync() > 0;
+        bool isSuccess = await SaveChangesAsync();
         if (isSuccess)
         {
             return result.Success("Created", "Success", "Product Created Successfully");
@@ -41,7 +41,7 @@ public class ProductsRepository : IProductsRepository
         {
             product.IsDeleted = true;
             storeContext.Update(product);
-            isSuccess = await storeContext.SaveChangesAsync() > 0;
+            isSuccess = await SaveChangesAsync();
         }
         if (isSuccess)
         {
@@ -50,21 +50,37 @@ public class ProductsRepository : IProductsRepository
         return result.Failure("Failure", "unable to delete Product/product not available");
     }
 
-    public async Task<Result<List<ProductDto>>> GetProducts()
+    public async Task<Result<List<ProductDto>>> GetProductsAsync(
+        string? brand,
+        string? type,
+        string? sort
+    )
     {
         Result<List<ProductDto>> result = new();
-        var list = await storeContext
-            .Products.Where(p => !p.IsDeleted)
+        var query = storeContext.Products.Where(p => !p.IsDeleted).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(brand))
+            query = query.Where(x => x.Brand == brand);
+        if (!string.IsNullOrWhiteSpace(type))
+            query = query.Where(x => x.Type == type);
+
+        query = sort switch
+        {
+            "priceAsc" => query.OrderBy(x => x.Price),
+            "priceDesc" => query.OrderByDescending(x => x.Price),
+            _ => query.OrderBy(x => x.Name),
+        };
+
+        var products = await query
             .ProjectTo<ProductDto>(mapper.ConfigurationProvider)
             .ToListAsync();
-        if (list == null)
+        if (products == null)
         {
             return result.Failure("Failure", "No Records Found.");
         }
-        return result.Success(list, "Success", list.Count.ToString());
+        return result.Success(products, "Success", products.Count.ToString());
     }
 
-    public async Task<Result<ProductDto>> ProductDetail(int id)
+    public async Task<Result<ProductDto>> GetProductByIdAsync(int id)
     {
         Result<ProductDto> result = new();
         var data = await storeContext.Products.SingleOrDefaultAsync(x =>
@@ -87,7 +103,7 @@ public class ProductsRepository : IProductsRepository
         if (product != null)
         {
             product = mapper.Map(request, product);
-            bool isSuccess = await storeContext.SaveChangesAsync() > 0;
+            bool isSuccess = await SaveChangesAsync();
             if (isSuccess)
             {
                 return result.Success("Created", "Success", "Product Updated Successfully");
@@ -99,5 +115,32 @@ public class ProductsRepository : IProductsRepository
     public void Dispose()
     {
         storeContext.Dispose();
+    }
+
+    public async Task<bool> SaveChangesAsync()
+    {
+        return await storeContext.SaveChangesAsync() > 0;
+    }
+
+    public async Task<Result<List<string>>> GetBrandsAsync()
+    {
+        Result<List<string>> result = new();
+        List<string> brands = [];
+        brands = await storeContext.Products.Select(b => b.Brand ?? "").Distinct().ToListAsync();
+        if (brands != null && brands.Count > 0)
+            return result.Success(brands, "Success", brands.Count.ToString());
+        brands = [];
+        return result.Success(brands, "Success", brands.Count.ToString());
+    }
+
+    public async Task<Result<List<string>>> GetTypeAsync()
+    {
+        Result<List<string>> result = new();
+        List<string> types = [];
+        types = await storeContext.Products.Select(b => b.Type ?? "").Distinct().ToListAsync();
+        if (types != null && types.Count > 0)
+            return result.Success(types, "Success", types.Count.ToString());
+        types = [];
+        return result.Success(types, "Success", types.Count.ToString());
     }
 }
